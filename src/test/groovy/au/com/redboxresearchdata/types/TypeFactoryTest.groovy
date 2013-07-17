@@ -20,7 +20,11 @@ package au.com.redboxresearchdata.types;
 import groovy.util.GroovyTestCase;
 import org.codehaus.groovy.ast.FieldNode
 
+import au.com.redboxresearchdata.util.config.Config;
+
 class TypeFactoryTest extends GroovyTestCase {
+	
+	def environment = "test"
 	
 	def getDummyVal = {fieldName ->
 		return "${fieldName}_val"
@@ -42,11 +46,16 @@ class TypeFactoryTest extends GroovyTestCase {
 	}
 	
 	public void testBuildJsonStr() {
+		def config = Config.getConfig(environment, "src/test/resources/config/config-unit-testing.groovy")
 		def dataMap = [:]
 		def service = new Service()
 		service.withFields(buildMap(dataMap), populateFields(service))
-		def list = [dataMap] 		
-		log.info(TypeFactory.buildJsonStr(list, "Service"))
+		def list = [dataMap]
+		def jsonHarvestMsg = TypeFactory.buildJsonStr(list, "Service", config) 		
+		log.info(jsonHarvestMsg)
+		dataMap.each {key, field->
+			assertEquals("test-${key}_val", field)
+		}
+		assert(jsonHarvestMsg.startsWith('''{"type":"ServiceJson","data":{"data":[{'''))
 	}
-
 }

@@ -4,7 +4,7 @@
 
   <groupId>au.com.redboxresearchdata</groupId>
   <artifactId>types</artifactId>
-  <version>${project.version}</version>
+  <version>1.0.0.BUILD-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>types</name>
@@ -18,6 +18,8 @@
     <maven.compiler.plugin.version>3.1</maven.compiler.plugin.version>
     <groovy.eclipse.compiler.version>2.7.0-01</groovy.eclipse.compiler.version>
     <junit.version>4.11</junit.version>
+    <log4j.version>1.2.17</log4j.version>    
+    <commons-io.version>2.4</commons-io.version>
   </properties>
 
   <dependencies>
@@ -33,10 +35,29 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-	    <groupId>org.codehaus.groovy</groupId>
-	    <artifactId>groovy-all</artifactId>
-	    <version>${groovy.version}</version>
-	  </dependency>
+  	  <groupId>au.com.redboxresearchdata</groupId>
+	  <artifactId>utilities</artifactId>
+	  <version>${project.version}</version>
+	  <scope>test</scope>
+  	</dependency>
+   	<!-- Other -->
+	<dependency>
+		<groupId>commons-io</groupId>
+		<artifactId>commons-io</artifactId>
+		<version>${commons-io.version}</version>
+	</dependency>
+    <dependency>
+	   <groupId>org.codehaus.groovy</groupId>
+	   <artifactId>groovy-all</artifactId>
+	   <version>${groovy.version}</version>
+	</dependency>
+	<!-- Logging -->
+	<dependency>
+		<groupId>log4j</groupId>
+		<artifactId>log4j</artifactId>
+		<version>${log4j.version}</version>
+	</dependency>
+	 
   </dependencies>
   <build>
   	<plugins>
@@ -55,6 +76,16 @@
 		        <version>${groovy.eclipse.compiler.version}</version>
 		      </dependency>
 		    </dependencies>
+		  </plugin>
+		  <plugin>
+		  	<groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-surefire-plugin</artifactId>
+	        <version>2.10</version>
+	        <configuration>
+	          <systemPropertyVariables>
+	            <maven.test.search.classdir>true</maven.test.search.classdir>
+	          </systemPropertyVariables>
+	        </configuration>
 		  </plugin>
   	</plugins>
   </build>
