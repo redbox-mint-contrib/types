@@ -52,6 +52,7 @@ import org.apache.commons.io.FilenameUtils
 class TypeFactory {
 
 	static final Logger log = Logger.getLogger(TypeFactory.class)
+	static String targetMethod = "buildType"
 	
 	/**
 	 * Returns a JSON harvest request message of the list using the type specified.
@@ -63,7 +64,6 @@ class TypeFactory {
 	 * @return JSON String of harvest request message.
 	 */
 	public static String buildJsonStr(List<Map> list, String type, ConfigObject config) {
-		def targetMethod = "buildType"
 		if (TypeFactory.metaClass.respondsTo(TypeFactory.class, targetMethod) != null) {
 			def strBuilder = new StringBuilder()
 			strBuilder.append(getJsonHeaderStr(type))
@@ -76,6 +76,24 @@ class TypeFactory {
 					log.error("Detected a failed record while pre-processing. Sending error event..")
 				}
 			}
+			strBuilder.append(getJsonFooterStr(type))
+			return strBuilder.toString()
+		}
+		throw new Exception("Type building method does not exist, check if TypeFactory has the method:'${targetMethod}' with Map and String argument")
+	}
+	
+	/**
+	 * Returns a JSON harvest request message of the data using the type specified.
+	 * 
+	 * @param data - Map<String, Object> where each key maps to the type's property
+	 * @return type - target data type of this map
+	 * @return JSON String of harvest request message
+	 */
+	public static String buildJsonStr(Map data, String type, ConfigObject config) {
+		if (TypeFactory.metaClass.respondsTo(TypeFactory.class, targetMethod) != null) {
+			def strBuilder = new StringBuilder()
+			strBuilder.append(getJsonHeaderStr(type))
+			strBuilder.append(TypeFactory."${targetMethod}"(resolveFields(data, type, config), type).toJsonStr())
 			strBuilder.append(getJsonFooterStr(type))
 			return strBuilder.toString()
 		}
