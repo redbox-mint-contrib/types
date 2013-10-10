@@ -109,42 +109,49 @@ class TypeFactory {
 	 * @return Expando instance containing 'data' (Map) and 'message' (String from script[s]).
 	 */
 	private static Expando preAssemble(Map data, String type, ConfigObject config) {
-		def retval = new Expando()
-		def preprocessing = config.harvest.scripts.preAssemble
-		ScriptEngineManager manager = new ScriptEngineManager()				
-		preprocessing.keySet().each {script->
-			def configPath = preprocessing[script]
-			if (data != null) {		
-				retval.script = script
-				def engine = manager.getEngineByExtension(FilenameUtils.getExtension(script)) 
-				if (engine != null) {
-					if (log.isDebugEnabled()) {
-						log.debug("Preparing to execute pre-processing script:'${script}'...")
-					}
-					engine.put("type", type)
-					engine.put("data", data)
-					engine.put("config", config)
-					engine.put("log", log)
-					engine.put("scriptPath", script)
-					engine.put("configPath", configPath)
-					engine.eval(new FileReader(new File(script)))
-					data = engine.get("data")					
-					retval.data = engine.get("data")							
-					retval.message = engine.get("message")				
-					if (data == null) {
-						log.error("Execution of '${script}' invalidated the record. The script returned the ff. message: '${retval.message}")
-					} else {
+		def retval = new Expando()		
+		def preprocessing = config.harvest.scripts?.preAssemble		
+		log.debug(preprocessing)
+		if (preprocessing != null && preprocessing.size() > 0) {
+			ScriptEngineManager manager = new ScriptEngineManager()				
+			preprocessing.keySet().each {script->
+				def configPath = preprocessing[script]
+				if (data != null) {		
+					retval.script = script
+					def engine = manager.getEngineByExtension(FilenameUtils.getExtension(script)) 
+					if (engine != null) {
 						if (log.isDebugEnabled()) {
-							log.debug("Execution of '${script}' successful, message is: '${retval.message}'")
+							log.debug("Preparing to execute pre-processing script:'${script}'...")
 						}
-					}	
+						engine.put("type", type)
+						engine.put("data", data)
+						engine.put("config", config)
+						engine.put("log", log)
+						engine.put("scriptPath", script)
+						engine.put("configPath", configPath)
+						engine.eval(new FileReader(new File(script)))
+						data = engine.get("data")					
+						retval.data = engine.get("data")							
+						retval.message = engine.get("message")				
+						if (data == null) {
+							log.error("Execution of '${script}' invalidated the record. The script returned the ff. message: '${retval.message}")
+						} else {
+							if (log.isDebugEnabled()) {
+								log.debug("Execution of '${script}' successful, message is: '${retval.message}'")
+							}
+						}	
+					} else {
+						log.error("Script type not supported: '${script}'.")
+					}
 				} else {
-					log.error("Script type not supported: '${script}'.")
+					log.error("Previous processing had failed. Halting further pre-processing of this record.")
+					return
 				}
-			} else {
-				log.error("Previous processing had failed. Halting further pre-processing of this record.")
-				return
 			}
+		} else {
+		 	retval.script = "None"
+		 	retval.data = data
+			retval.message = "No script executed, pass through." 
 		}
 		return retval		
 	}
