@@ -52,7 +52,7 @@ import org.apache.commons.io.FilenameUtils
 class TypeFactory {
 
 	static final Logger log = Logger.getLogger(TypeFactory.class)
-	static String targetMethod = "buildType"
+	static String targetMethod = "buildJson"
 	
 	/**
 	 * Returns a JSON harvest request message of the list using the type specified.
@@ -70,7 +70,7 @@ class TypeFactory {
 			list.each {map ->
 				def preAssembleResults = preAssemble(map, type, config)
 				if (preAssembleResults.data != null) {
-					strBuilder.append(TypeFactory."${targetMethod}"(resolveFields(preAssembleResults.data, type, config), type).toJsonStr())
+					strBuilder.append(TypeFactory."${targetMethod}"(resolveFields(preAssembleResults.data, type, config), type))
 				} else {
 					// @TODO: send an event.
 					log.error("Detected a failed record while pre-processing. Sending error event..")
@@ -114,8 +114,9 @@ class TypeFactory {
 		log.debug(preprocessing)
 		if (preprocessing != null && preprocessing.size() > 0) {
 			ScriptEngineManager manager = new ScriptEngineManager()				
-			preprocessing.keySet().each {script->
-				def configPath = preprocessing[script]
+			preprocessing.each {scriptConfig->
+				def script = scriptConfig.keySet().toArray()[0]
+				def configPath = scriptConfig[script]
 				if (data != null) {		
 					retval.script = script
 					def engine = manager.getEngineByExtension(FilenameUtils.getExtension(script)) 
@@ -239,6 +240,12 @@ class TypeFactory {
 				return new People(data)			
 		}
 		throw new Exception("Type does not seem to be supported: '${type}'.")
+	}
+	
+	public static String buildJson(Map data, String type) {
+		def builder = new groovy.json.JsonBuilder()
+		builder(data)
+		return builder.toString()
 	}
 	
 	/**
