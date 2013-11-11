@@ -67,8 +67,11 @@ class TypeFactory {
 		if (TypeFactory.metaClass.respondsTo(TypeFactory.class, targetMethod) != null) {
 			def strBuilder = new StringBuilder()
 			strBuilder.append(getJsonHeaderStr(type))
+			// launch the preBuild
+			launchScripts(config.harvest.scripts?.preBuild, false, null, type, config)
 			list.each {map ->
-				def preAssembleResults = preAssemble(map, type, config)
+				// launch preAssemble
+				def preAssembleResults = launchScripts(config.harvest.scripts?.preAssemble, true, map, type, config)
 				if (preAssembleResults.data != null) {
 					strBuilder.append(TypeFactory."${targetMethod}"(resolveFields(preAssembleResults.data, type, config), type))
 				} else {
@@ -76,6 +79,8 @@ class TypeFactory {
 					log.error("Detected a failed record while pre-processing. Sending error event..")
 				}
 			}
+			// launch the postBuild
+			launchScripts(config.harvest.scripts?.postBuild, false, null, type, config)
 			strBuilder.append(getJsonFooterStr(type))
 			return strBuilder.toString()
 		}
@@ -101,23 +106,24 @@ class TypeFactory {
 	}
 	
 	/**
-	 * Pre-assembly method.
+	 * A method for launching scripts 
 	 * 
+	 * @param scriptChain - list of maps that specify a script and a script config
+	 * @param checkData - if true, stops chain exectuion when a preceeding script nulls the data 
 	 * @param data
 	 * @param type
 	 * @param config
 	 * @return Expando instance containing 'data' (Map) and 'message' (String from script[s]).
 	 */
-	private static Expando preAssemble(Map data, String type, ConfigObject config) {
-		def retval = new Expando()		
-		def preprocessing = config.harvest.scripts?.preAssemble		
-		log.debug(preprocessing)
-		if (preprocessing != null && preprocessing.size() > 0) {
+	private static Expando launchScripts(scriptChain, boolean checkData, Map data, String type, ConfigObject config) {
+		def retval = new Expando()				
+		log.debug(scriptChain)
+		if (scriptChain != null && scriptChain.size() > 0) {
 			ScriptEngineManager manager = new ScriptEngineManager()				
-			preprocessing.each {scriptConfig->
+			scriptChain.each {scriptConfig->
 				def script = scriptConfig.keySet().toArray()[0]
 				def configPath = scriptConfig[script]
-				if (data != null) {		
+				if (!checkData || data != null) {		
 					retval.script = script
 					def engine = manager.getEngineByExtension(FilenameUtils.getExtension(script)) 
 					if (engine != null) {
@@ -134,7 +140,7 @@ class TypeFactory {
 						data = engine.get("data")					
 						retval.data = engine.get("data")							
 						retval.message = engine.get("message")				
-						if (data == null) {
+						if (checkData && data == null) {
 							log.error("Execution of '${script}' invalidated the record. The script returned the ff. message: '${retval.message}")
 						} else {
 							if (log.isDebugEnabled()) {
@@ -226,7 +232,7 @@ class TypeFactory {
 	/**
 	 * Build a specific type from a Map. The keys on the Map must be equivalent to the Type's field names. 
 	 * 
-	 * Method was added as an effort to ensure static typing.
+	 * Method was added as an effort to ensure strong typing.
 	 * 
 	 * @param data - source map
 	 * @param type - type name
@@ -242,6 +248,11 @@ class TypeFactory {
 		throw new Exception("Type does not seem to be supported: '${type}'.")
 	}
 	
+	/**
+	 * Builds the JSON string from a map.
+	 * 
+	 * This method was added to remove strong typing.
+	 */
 	public static String buildJson(Map data, String type) {
 		def builder = new groovy.json.JsonBuilder()
 		builder(data)
