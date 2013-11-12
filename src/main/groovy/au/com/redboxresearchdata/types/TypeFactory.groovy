@@ -69,16 +69,20 @@ class TypeFactory {
 			strBuilder.append(getJsonHeaderStr(type))
 			// launch the preBuild
 			launchScripts(config.harvest.scripts?.preBuild, false, null, type, config)
+			def comma = ""
 			list.each {map ->
 				// launch preAssemble
 				def preAssembleResults = launchScripts(config.harvest.scripts?.preAssemble, true, map, type, config)
 				if (preAssembleResults.data != null) {
+					strBuilder.append(comma)
 					strBuilder.append(TypeFactory."${targetMethod}"(resolveFields(preAssembleResults.data, type, config), type))
+					comma = ","
 				} else {
 					// @TODO: send an event.
 					log.error("Detected a failed record while pre-processing. Sending error event..")
 				}
 			}
+			
 			// launch the postBuild
 			launchScripts(config.harvest.scripts?.postBuild, false, null, type, config)
 			strBuilder.append(getJsonFooterStr(type))
